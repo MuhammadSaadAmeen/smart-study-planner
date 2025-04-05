@@ -19,7 +19,7 @@ A comprehensive study planner with integrated timetable, data science roadmap, a
 - **Smart Integrations**  
   - Automatic prayer times (Bahawalpur)  
   - Dark/Light mode toggle  
-  - Export to PDF/CSV/Excel  
+  - Export to CSV/Excel  
 
 - **Mobile First**  
   - Responsive design  
