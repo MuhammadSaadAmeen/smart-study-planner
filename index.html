@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Study Planner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #2d3748;
+            --primary-color: #4a5568;
+            --card-bg: #f7fafc;
+            --border-color: #e2e8f0;
+            --hover-bg: #edf2f7;
+        }
+
+        .dark-mode {
+            --bg-color: #1a202c;
+            --text-color: #e2e8f0;
+            --primary-color: #81e6d9;
+            --card-bg: #2d3748;
+            --border-color: #4a5568;
+            --hover-bg: #4a5568;
+        }
+
+        * {
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+            padding: 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+
+        button {
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        button:hover {
+            filter: brightness(0.95);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin: 1rem 0;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 1rem;
+            text-align: left;
+        }
+
+        th {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        td[contenteditable="true"] {
+            background: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+        }
+
+        td[contenteditable="true"]:hover {
+            background: var(--hover-bg);
+        }
+
+        .prayer-times {
+            background: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            justify-content: center;
+        }
+
+        .roadmap-section {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .roadmap-phase {
+            margin-bottom: 2rem;
+            padding-left: 1rem;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .roadmap-phase h3 {
+            color: var(--primary-color);
+            margin: 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        .roadmap-phase ul {
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .roadmap-phase li {
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            background: var(--bg-color);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 24px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.5rem;
+            }
+            
+            th, td {
+                padding: 0.75rem;
+                font-size: 0.9rem;
+            }
+            
+            button {
+                flex: 1;
+                min-width: 100%;
+            }
+            
+            .prayer-times {
+                gap: 1rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Smart Study Planner</h1>
+            <div class="prayer-times"></div>
+        </div>
+
+        <div class="controls">
+            <button id="saveBtn">💾 Save</button>
+            <!-- <button onclick="exportPDF()">📄 PDF</button> -->
+            <button onclick="exportCSV()">📊 CSV</button>
+            <button onclick="exportExcel()">📈 Excel</button>
+            <button onclick="toggleRoadmap()">🗺️ Roadmap</button>
+        </div>
+
+        <table id="timetable"></table>
+
+        <div class="roadmap-section" id="roadmap" style="display: none;">
+            <h2 contenteditable="true">📅 Data Science Roadmap</h2>
+            
+            <div class="roadmap-phase">
+                <h3 contenteditable="true">April 2025 - Foundation Phase</h3>
+                <ul>
+                    <li contenteditable="true">✅ Master Data Structures (CS301)</li>
+                    <li contenteditable="true">📈 Daily Stats Practice (STA301)</li>
+                    <li contenteditable="true">🐍 Python Basics (1hr/day)</li>
+                    <li contenteditable="true">🛠 Tools: VS Code Setup</li>
+                    <li contenteditable="true">📚 Recommended: "Python Crash Course"</li>
+                </ul>
+            </div>
+
+            <div class="roadmap-phase">
+                <h3 contenteditable="true">May 2025 - Core Skills</h3>
+                <ul>
+                    <li contenteditable="true">📊 Matplotlib/Seaborn Projects</li>
+                    <li contenteditable="true">📈 Advanced Statistics</li>
+                    <li contenteditable="true">🗃️ SQL Fundamentals</li>
+                    <li contenteditable="true">📝 Midterm Exam Preparation</li>
+                </ul>
+            </div>
+
+            <div class="roadmap-phase">
+                <h3 contenteditable="true">June 2025 - ML Fundamentals</h3>
+                <ul>
+                    <li contenteditable="true">🤖 Scikit-learn Algorithms</li>
+                    <li contenteditable="true">🏆 Kaggle Competitions</li>
+                    <li contenteditable="true">☁️ Cloud Basics</li>
+                </ul>
+            </div>
+
+            <div class="roadmap-phase">
+                <h3 contenteditable="true">July 2025 - Final Preparation</h3>
+                <ul>
+                    <li contenteditable="true">📁 Portfolio Projects</li>
+                    <li contenteditable="true">💼 Interview Preparation</li>
+                    <li contenteditable="true">📝 Final Exams Focus</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark Mode</button>
+
+    <script>
+        // Data Structures
+        let timetableData = [];
+        let roadmapData = {
+            title: "📅 Data Science Roadmap",
+            phases: [
+                {
+                    title: "April 2025 - Foundation Phase",
+                    items: [
+                        "✅ Master Data Structures (CS301)",
+                        "📈 Daily Stats Practice (STA301)",
+                        "🐍 Python Basics (1hr/day)",
+                        "🛠 Tools: VS Code Setup",
+                        "📚 Recommended: \"Python Crash Course\""
+                    ]
+                },
+                {
+                    title: "May 2025 - Core Skills",
+                    items: [
+                        "📊 Matplotlib/Seaborn Projects",
+                        "📈 Advanced Statistics",
+                        "🗃️ SQL Fundamentals",
+                        "📝 Midterm Exam Preparation"
+                    ]
+                },
+                {
+                    title: "June 2025 - ML Fundamentals",
+                    items: [
+                        "🤖 Scikit-learn Algorithms",
+                        "🏆 Kaggle Competitions",
+                        "☁️ Cloud Basics"
+                    ]
+                },
+                {
+                    title: "July 2025 - Final Preparation",
+                    items: [
+                        "📁 Portfolio Projects",
+                        "💼 Interview Preparation",
+                        "📝 Final Exams Focus"
+                    ]
+                }
+            ]
+        };
+
+        // Core Functions
+        function createTable() {
+            const table = document.getElementById("timetable");
+            table.innerHTML = `
+                <thead>
+                    <tr><th>Time</th><th>Activity (Click to Edit)</th></tr>
+                </thead>
+                <tbody>
+                    ${timetableData.map(row => `
+                        <tr>
+                            <td>${row.time}</td>
+                            <td contenteditable="true">${row.activity}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            `;
+        }
+
+        function renderRoadmap() {
+            const roadmapEl = document.getElementById("roadmap");
+            roadmapEl.innerHTML = `
+                <h2 contenteditable="true">${roadmapData.title}</h2>
+                ${roadmapData.phases.map(phase => `
+                    <div class="roadmap-phase">
+                        <h3 contenteditable="true">${phase.title}</h3>
+                        <ul>
+                            ${phase.items.map(item => `
+                                <li contenteditable="true">${item}</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Export Functions
+        function exportPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(18);
+            doc.text("Study Timetable", 14, 15);
+            doc.setFontSize(12);
+            doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 22);
+
+            const columns = [
+                { header: "Time", dataKey: "time" },
+                { header: "Activity", dataKey: "activity" }
+            ];
+            
+            const rows = timetableData.map(item => ({
+                time: item.time,
+                activity: item.activity.replace(/📚|📊|🐍/g, '')
+            }));
+
+            doc.autoTable({
+                columns: columns,
+                body: rows,
+                startY: 25,
+                theme: 'grid',
+                styles: { 
+                    fontSize: 10,
+                    cellPadding: 1.5,
+                    valign: 'middle'
+                },
+                headerStyles: {
+                    fillColor: [44, 62, 80],
+                    textColor: 255,
+                    fontSize: 11
+                },
+                alternateRowStyles: {
+                    fillColor: [245, 245, 245]
+                }
+            });
+
+            const pageCount = doc.getNumberOfPages();
+            for(let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(10);
+                doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 40, doc.internal.pageSize.height - 8);
+            }
+
+            doc.save("study-timetable.pdf");
+        }
+
+        function exportCSV() {
+            const csvContent = [
+                ['Time', 'Activity'],
+                ...timetableData.map(row => [row.time, row.activity])
+            ].map(e => e.join(",")).join("\n");
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'timetable.csv';
+            link.click();
+        }
+
+        function exportExcel() {
+            const ws = XLSX.utils.json_to_sheet(timetableData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Timetable");
+            XLSX.writeFile(wb, "timetable.xlsx");
+        }
+
+        // System Functions
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('darkMode', isDark);
+            document.querySelector('.theme-toggle').textContent = isDark ? '🌞 Light Mode' : '🌙 Dark Mode';
+        }
+
+        function toggleRoadmap() {
+            const roadmap = document.getElementById('roadmap');
+            roadmap.style.display = roadmap.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function fetchPrayerTimes() {
+            try {
+                const response = await fetch("https://api.aladhan.com/v1/timingsByCity?city=Bahawalpur&country=Pakistan&method=2");
+                const data = await response.json();
+                const timings = data.data.timings;
+
+                const formatTime = timeStr => {
+                    const [hour, minute] = timeStr.split(':');
+                    const suffix = hour >= 12 ? 'PM' : 'AM';
+                    const twelveHour = hour % 12 || 12;
+                    return `${twelveHour}:${minute} ${suffix}`;
+                };
+
+                document.querySelector(".prayer-times").innerHTML = `
+                    🕌 Fajr ${formatTime(timings.Fajr)} | 
+                    Dhuhr ${formatTime(timings.Dhuhr)} | 
+                    Asr ${formatTime(timings.Asr)} | 
+                    Maghrib ${formatTime(timings.Maghrib)} | 
+                    Isha ${formatTime(timings.Isha)}
+                `;
+            } catch (error) {
+                console.error("Error fetching prayer times:", error);
+            }
+        }
+
+        // Initialization
+        window.addEventListener('load', () => {
+            // Load theme
+            if (localStorage.getItem('darkMode') === 'true') {
+                document.body.classList.add('dark-mode');
+            }
+
+            // Load timetable
+            if (localStorage.getItem('timetable')) {
+                timetableData = JSON.parse(localStorage.getItem('timetable'));
+            } else {
+                // Default timetable
+                timetableData = [
+                    { time: "5:00 AM", activity: "Fajr Prayer + Quran" },
+                    { time: "7:00 AM", activity: "University Course: CS301" },
+                    { time: "10:00 AM", activity: "Software Engineering (CS504)" },
+                    { time: "12:30 PM", activity: "Dhuhr Prayer + Lunch" },
+                    { time: "3:15 PM", activity: "Data Science Practice" },
+                    { time: "6:30 PM", activity: "Maghrib Prayer + Dinner" },
+                    { time: "8:00 PM", activity: "Projects/Coding" }
+                ];
+            }
+
+            // Load roadmap
+            if (localStorage.getItem('roadmap')) {
+                roadmapData = JSON.parse(localStorage.getItem('roadmap'));
+            }
+
+            createTable();
+            renderRoadmap();
+            fetchPrayerTimes();
+            document.querySelector('.theme-toggle').textContent = 
+                document.body.classList.contains('dark-mode') ? '🌞 Light Mode' : '🌙 Dark Mode';
+        });
+
+        // Save System
+        document.getElementById("saveBtn").addEventListener("click", () => {
+            // Save timetable
+            const rows = document.querySelectorAll("#timetable tbody tr");
+            timetableData = Array.from(rows).map(row => ({
+                time: row.cells[0].innerText,
+                activity: row.cells[1].innerText
+            }));
+
+            // Save roadmap
+            const roadmapEl = document.getElementById("roadmap");
+            roadmapData.title = roadmapEl.querySelector("h2").innerText;
+            roadmapData.phases = Array.from(roadmapEl.querySelectorAll(".roadmap-phase")).map(phase => ({
+                title: phase.querySelector("h3").innerText,
+                items: Array.from(phase.querySelectorAll("li")).map(li => li.innerText)
+            }));
+
+            localStorage.setItem("timetable", JSON.stringify(timetableData));
+            localStorage.setItem("roadmap", JSON.stringify(roadmapData));
+            alert("All changes saved successfully! 🎉");
+        });
+    </script>
+</body>
+</html>
