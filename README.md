@@ -2,7 +2,7 @@
 
 A comprehensive study planner with integrated timetable, data science roadmap, and prayer time tracking. Perfect for students managing academic and personal development goals.
 
-![Demo](brightness.png) *Light Mode* | ![Demo](moon.png ) *Dark Mode*
+☀️*Light Mode* | 🌙 *Dark Mode*
 
 ## Features ✨
 
