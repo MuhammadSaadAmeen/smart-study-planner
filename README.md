@@ -25,9 +25,3 @@ A comprehensive study planner with integrated timetable, data science roadmap, a
   - Responsive design  
   - Touch-friendly interface  
   - PWA-ready (Add to Home Screen)  
-
-## Installation 📦
-
-1. Clone repo:
-```bash
-git clone https://github.com/your-username/smart-study-planner.git
